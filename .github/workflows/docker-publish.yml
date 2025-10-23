@@ -44,5 +44,5 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ghcr.io/madcowgit/LUMCpollengrafiekscraper:latest
+            ghcr.io/madcowgit/lumcpollengrafiekscraper:latest
           labels: ${{ steps.meta.outputs.labels }}
