@@ -32,7 +32,7 @@ python app.py
 version: "3.9"
 services:
  lumcpollengrafiekscraper:
-  image: ghcr.io/madcowgit/lumcpollengrafiekscraper:main
+  image: ghcr.io/madcowgit/lumcpollengrafiekscraper:latest
   ports:
     - "8001:8000"
   environment:
