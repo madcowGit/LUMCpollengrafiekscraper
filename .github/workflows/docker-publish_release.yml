@@ -1,9 +1,8 @@
-name: Build and publish Docker image after commit
+name: Build and publish Docker image when release is created
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  release:
+    types: [created]
 
 permissions:
   contents: read
@@ -43,5 +42,5 @@ jobs:
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
-            ghcr.io/madcowgit/lumcpollengrafiekscraper:devel
+            ghcr.io/madcowgit/lumcpollengrafiekscraper:latest
           labels: ${{ steps.meta.outputs.labels }}
