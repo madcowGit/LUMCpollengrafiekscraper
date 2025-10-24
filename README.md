@@ -1,7 +1,8 @@
 
 # LUMC Pollen Flask API
 
-A minimal Flask web server that exposes the LUMC pollen data as a simple HTTP API and serves links/images to the historical graphs. It is a container-ready rewrite of your original script.
+A minimal Flask web server that scrapes the LUMC pollen data and exposes it as a simple HTTP API and serves links/images to the historical graphs. 
+The server keeps an in-memory cache (15 minutes) to avoid hitting the upstream too often.
 
 ## Endpoints
 
@@ -13,6 +14,8 @@ A minimal Flask web server that exposes the LUMC pollen data as a simple HTTP AP
 
 Name matching is case-insensitive.
 
+# Install
+
 ## Local run
 
 ```bash
@@ -23,11 +26,19 @@ python app.py
 # Then open http://localhost:8000/health
 ```
 
-## Docker build & run
+## Docker compose
 
-```bash
-docker build -t lumc-pollen:local .
-docker run --rm -p 8000:8000 lumc-pollen:local
+```
+version: "3.9"
+services:
+ lumcpollengrafiekscraper:
+  image: ghcr.io/madcowgit/lumcpollengrafiekscraper:main
+  ports:
+    - "8001:8000"
+  environment:
+    LUMC_BASE_URL: "https://sec.lumc.nl/pollenwebextern/"
+    PORT: "8000"
+  restart: always    
 ```
 
 ## Configuration
@@ -35,18 +46,4 @@ docker run --rm -p 8000:8000 lumc-pollen:local
 - `LUMC_BASE_URL` (optional): Override the upstream base URL. Default: `https://sec.lumc.nl/pollenwebextern/`.
 - `PORT` (optional): Port for the development server (`python app.py`). The container uses Gunicorn on port `8000`.
 
-## GitHub Actions: build & publish to GHCR
 
-This repo includes a workflow at `.github/workflows/docker-publish.yml` to automatically build and push the image to GitHub Container Registry (GHCR) on each push to `main` and on tag events.
-
-**Prerequisites:**
-- Make sure your repository visibility and package settings allow GHCR publishes.
-- No extra secrets are required: the built-in `GITHUB_TOKEN` is used for `ghcr.io`.
-
-After a successful run, the image will be available at:
-`ghcr.io/<OWNER>/<REPO>:latest` and `ghcr.io/<OWNER>/<REPO>:<sha>`.
-
-## Notes
-
-- The upstream site structure can change. This scraper uses simple heuristics similar to the original script, so consider adding monitoring/logging.
-- The server keeps an in-memory cache (15 minutes) to avoid hitting the upstream too often.
