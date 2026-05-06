@@ -3,10 +3,12 @@
 This integration brings LUMC pollen data directly into Home Assistant without needing a separate Docker container or webserver.
 
 ## Features
-
-- **Memory-cached scraper**: Efficient, lightweight scraping with configurable TTL cache
 - **Configurable UI**: Easy setup through Home Assistant UI
-- **Multiple data points**: Get pollen total count, graph URL, and graph image
+- **Three sensor types per pollen**:
+   - `total` - Pollen count in µg/m³ with graph_url and graph_image attributes
+   - `graph_url` - Direct link to graph PNG
+   - `graph_image` - Base64-encoded PNG as data URL (ready for picture entities)
+- **Memory-cached scraper**: Efficient, lightweight scraping with configurable TTL cache
 - **Base64 encoded images**: Graph images stored as base64 for easy display in automations/templates
 - **No Docker required**: Runs as a native Home Assistant integration
 - **Native entities**: Access data through standard Home Assistant sensors
