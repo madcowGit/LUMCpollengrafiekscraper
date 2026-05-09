@@ -1,0 +1,19 @@
+{
+  "title": "LUMC Pollen Grafiek",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure LUMC Pollen",
+        "description": "Enter the settings for the LUMC pollen scraper.",
+        "data": {
+          "base_url": "Base URL",
+          "pollen_type": "Pollen Type",
+          "cache_ttl": "Cache TTL (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_pollen_type": "Pollen type not found on LUMC website"
+    }
+  }
+}

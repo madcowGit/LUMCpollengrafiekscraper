@@ -1,98 +1,87 @@
-"""Configuration flow for LUMC Pollen Grafiek integration."""
+from __future__ import annotations
 
 import logging
-from typing import Any, Dict
-
+from typing import Any
 import voluptuous as vol
+import requests
+import json
+import re
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import FlowResult
 
-from .const import CONF_BASE_URL, CONF_POLLEN_TYPE, CONF_TTL, DEFAULT_BASE_URL, DEFAULT_TTL, DOMAIN
-from .lumc_client import LUMCPollenClient, PollenNotFound
+from .const import (
+    DOMAIN,
+    CONF_POLLEN_TYPE,
+    CONF_CACHE_TTL,
+    DEFAULT_POLLEN_TYPE,
+    DEFAULT_CACHE_TTL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
-        vol.Required(CONF_POLLEN_TYPE): str,
-        vol.Required(CONF_TTL, default=DEFAULT_TTL): int,
-    }
-)
+POLLEN_API = "https://sec.lumc.nl/pollenwebextern/pollenwebservice.asmx/GetPollenData"
 
 
-class LUMCPollenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for LUMC Pollen Grafiek."""
+def _fetch_pollen_types() -> list[str]:
+    """Fetch available pollen types from LUMC API."""
+    try:
+        resp = requests.post(
+            POLLEN_API,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            json={},
+            timeout=10,
+        )
+        resp.raise_for_status()
 
+        # Extract JSON inside XML <string>...</string>
+        match = re.search(r">{(.*)}<", resp.text)
+        if not match:
+            _LOGGER.error("LUMC API returned unexpected format")
+            return []
+
+        data = json.loads("{" + match.group(1) + "}")
+        return [p.get("Name") for p in data.get("d", [])]
+
+    except Exception as err:
+        _LOGGER.error("Error fetching pollen types: %s", err)
+        return []
+
+
+class LumcPollenConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
-    async def async_step_user(self, user_input: Dict[str, Any] | None = None):
-        """Handle the initial step."""
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        errors: dict[str, str] = {}
+
+        pollen_types = await self.hass.async_add_executor_job(_fetch_pollen_types)
+
+        if not pollen_types:
+            errors["base"] = "cannot_fetch_pollen_types"
+            pollen_types = ["Alnus", "Betula", "Poaceae"]
+
         if user_input is not None:
-            # Validate the pollen type
-            base_url = user_input[CONF_BASE_URL]
-            pollen_type = user_input[CONF_POLLEN_TYPE]
-
-            try:
-                client = LUMCPollenClient(base_url=base_url)
-                available_types = client.list_names()
-
-                # Case-insensitive match
-                if pollen_type.lower() not in [t.lower() for t in available_types]:
-                    return self.async_show_form(
-                        step_id="user",
-                        data_schema=DATA_SCHEMA,
-                        errors={"base": "invalid_pollen_type"},
-                        description_placeholders={
-                            "available_types": ", ".join(available_types)
-                        },
-                    )
-            except Exception as e:
-                _LOGGER.error("Error validating pollen type: %s", e)
-                return self.async_show_form(
-                    step_id="user",
-                    data_schema=DATA_SCHEMA,
-                    errors={"base": "cannot_connect"},
+            if user_input[CONF_POLLEN_TYPE] not in pollen_types:
+                errors["base"] = "invalid_pollen_type"
+            else:
+                return self.async_create_entry(
+                    title=f"LUMC Pollen - {user_input[CONF_POLLEN_TYPE]}",
+                    data=user_input,
                 )
 
-            # Create unique ID based on pollen type
-            await self.async_set_unique_id(f"{pollen_type.lower()}")
-            self._abort_if_unique_id_configured()
-
-            return self.async_create_entry(
-                title=f"LUMC Pollen - {pollen_type}",
-                data=user_input,
-            )
-
-        return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
-        """Get the options flow for this integration."""
-        return LUMCPollenOptionsFlow(config_entry)
-
-
-class LUMCPollenOptionsFlow(config_entries.OptionsFlow):
-    """Options flow for LUMC Pollen Grafiek integration."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input: Dict[str, Any] | None = None):
-        """Manage the options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        options_schema = vol.Schema(
+        schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_TTL, default=self.config_entry.options.get(CONF_TTL, DEFAULT_TTL)
-                ): int,
+                vol.Required(CONF_POLLEN_TYPE, default=DEFAULT_POLLEN_TYPE): vol.In(
+                    pollen_types
+                ),
+                vol.Required(CONF_CACHE_TTL, default=DEFAULT_CACHE_TTL): int,
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=options_schema)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
+        )

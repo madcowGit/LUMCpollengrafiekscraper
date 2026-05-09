@@ -1,0 +1,11 @@
+{
+  "domain": "lumc_pollen",
+  "name": "LUMC Pollen Grafiek",
+  "version": "0.0.4",
+  "documentation": "https://github.com/madcowGit/LUMCpollengrafiekscraper",
+  "requirements": ["requests>=2.32.3"],
+  "codeowners": ["@madcowGit"],
+  "config_flow": true,
+  "iot_class": "cloud_polling",
+  "integration_type": "service"
+}
