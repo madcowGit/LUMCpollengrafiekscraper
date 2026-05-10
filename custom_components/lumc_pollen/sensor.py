@@ -78,3 +78,4 @@ class LumcPollenSensor(SensorEntity):
             self._last_update = now
         else:
             _LOGGER.warning("Pollen type '%s' missing in latest HTML", self._pollen_name)
+
