@@ -1,3 +1,7 @@
+# DEPRECATED
+this integration uses a flask server. It has been updated to run as a custom integration for home assistant (and thus no longer needing a flask server).
+the updated integration can be found here [https://github.com/madcowGit/LUMC_pollentelling](https://github.com/madcowGit/LUMC_pollentelling)
+
 
 # LUMC Pollen Flask API
 
